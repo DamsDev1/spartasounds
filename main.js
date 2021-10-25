@@ -56,7 +56,7 @@ function initTwitch() {
 
   const Bot = new TwitchBot({
     username: 'spartasounds_',
-    oauth: 'oauth:m5711plkjdo8w1jiun9emooclb8r5q',
+    oauth: '',
     channels: ['spartacuss93']
   })
 
