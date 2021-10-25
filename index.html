@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<title>SpartaSounds</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+	<link href='https://fonts.googleapis.com/css?family=Roboto:400,100,300,700' rel='stylesheet' type='text/css'>
+
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
+	<link rel="stylesheet" href="css/style.css">
+
+</head>
+
+<body>
+	<section class="ftco-section">
+		<div class="container">
+			<div class="row justify-content-center">
+				<div class="col-md-6 text-center mb-5">
+					<h2 class="heading-section">SpartaSounds</h2>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-12">
+					<div class="table-wrap">
+						<table class="table">
+							<thead class="thead-dark">
+								<tr>
+									<th>Commande</th>
+									<th>Fichier</th>
+									<th>&nbsp;</th>
+								</tr>
+							</thead>
+							<tbody id="table-command">
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+			<input type="text" id="commandinput" name="command" placeholder="Commande">
+			<input type="file" id="fileinput" accept=".mp3" name="file">
+			<input type="submit" id="addcommand" value="Ajouter">
+			<br>
+			<label for="cooldowninput">Cooldown commande:</label>
+			<input type="number" id="cooldowninput" name="command" placeholder="Cooldown">
+			<input type="submit" id="addcooldown" value="Définir">
+		</div>
+	</section>
+
+	<script src="js/jquery.min.js"></script>
+	<script src="js/popper.js"></script>
+	<script src="js/bootstrap.min.js"></script>
+	<script src="js/main.js"></script>
+	<script src="./renderer.js"></script>
+	<script>
+		function allStorage() {
+
+			var values = [],
+				keys = Object.keys(localStorage),
+				i = keys.length;
+
+			while (i--) {
+				if(keys[i] != "initiedBot" && keys[i] != "cooldown"){
+					values.push([keys[i], localStorage.getItem(keys[i])]);
+				}
+			}
+
+			return values;
+		}
+		var arraytest = allStorage()
+		var arraycommands = []
+		arraytest.forEach(element => {
+			arraycommands.push(element[0]);
+
+			document.getElementById("table-command").insertAdjacentHTML('beforeend', `<tr class="alert" role="alert">
+									<th scope="row">${element[0]}</th>
+									<td>${element[1]}</td>
+									<td>
+										<a href="#" class="close deleter">
+											<span aria-hidden="true"><i data-sound="${element[0]}" class="fa fa-close"></i></span>
+										</a>
+									</td>
+								</tr>`);
+		});
+		document.getElementById("addcommand").addEventListener("click", function () {
+			const commandinput = document.getElementById("commandinput");
+			const fileinput = document.getElementById("fileinput");
+			if (commandinput.value && commandinput.value != "") {
+				if (commandinput.value.indexOf(' ') < 0) {
+					if (fileinput.files[0] && fileinput.files[0].path && fileinput.files[0].path != "") {
+						localStorage.setItem(commandinput.value, fileinput.files[0].path);
+						location.reload()
+					} else {
+						alert("Un fichier est requis !")
+					}
+				} else {
+					alert("La commande ne doit pas contenir d'espace")
+				}
+			} else {
+				alert("Un nom de commande est exigé !");
+			}
+		});
+
+
+		const divs = document.querySelectorAll('.deleter');
+
+		divs.forEach(el => el.addEventListener('click', event => {
+			localStorage.removeItem(event.target.dataset.sound);
+			location.reload()
+		}));
+		if(localStorage.getItem("cooldown") === null) {
+			localStorage.setItem("cooldown", 15)
+		}
+
+
+		document.getElementById("cooldowninput").value = localStorage.getItem("cooldown");
+
+		document.getElementById("addcooldown").addEventListener("click", function () {
+			if(parseInt(document.getElementById("cooldowninput").value) && document.getElementById("cooldowninput").value != ""){
+				localStorage.setItem("cooldown", document.getElementById("cooldowninput").value);
+				ipc.sendSync("cooldown", document.getElementById("cooldowninput").value)
+			}
+		})
+
+		ipc.sendSync("cooldown", localStorage.getItem("cooldown"))
+		ipc.sendSync('commands', arraycommands);
+		ipc.on('responsecommand', function (evt, message) {
+			ipc.sendSync("soundplay", localStorage.getItem(message));
+		});
+		var checkbot;
+		ipc.on('botinit', function (evt, message) {
+			checkbot = true,
+			localStorage.setItem("initiedBot", 1);
+		});
+		if(localStorage.getItem("initiedBot") === null){
+			setTimeout(function () {checkbot_func()}, 15000)
+		}
+		function checkbot_func(){
+			if(checkbot === undefined){
+				ipc.sendSync('startbot', true)
+			}
+			setTimeout(() => {
+				if(localStorage.getItem("initiedBot") === null){
+					checkbot_func()
+				}
+			}, 2000);
+		}
+	</script>
+</body>
+
+</html>
